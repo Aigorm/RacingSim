@@ -36,6 +36,8 @@ public:
     // Główna funkcja wywoływana z main.cpp co klatkę (np. deltaTime = 0.016f)
     void update(float deltaTime, const std::vector<ControlOutput>& inputs);
 
+    const std::vector<CarState>& getCarStates() const;
+
     // Przepakowanie danych dla konkretnego bota (patrz w Telemetry.h)
     Telemetry getTelemetryForBot(int botId) const;
 };

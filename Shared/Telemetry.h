@@ -1,52 +1,9 @@
 #pragma once
 #include <vector>
+#include <cstdint>
 #include "Vector2D.h"
 
-// Co bot chce zrobić w danej klatce? (Wysyłane DO silnika fizycznego)
-struct ControlOutput {
-    // Od -1.0 (pełen wsteczny) do 1.0 (gaz w podłogę)
-    float throttle = 0.0f; 
-    
-    // Od 0.0 (brak hamowania) do 1.0 (maksymalny wcisk hamulca)
-    float brake = 0.0f;
-
-    // np. -1.0 (maksymalnie w lewo), 1.0 (maksymalnie w prawo)
-    float steeringAngle = 0.0f;
-    
-    ControlOutput() : throttle(0.0f), steeringAngle(0.0f) {}
-};
-
-enum class TireCompound { Soft, Medium, Hard };
-
-// Stan fizyczny jednego auta (Odbierane OD silnika fizycznego)
-struct CarState {
-    int id;
-    Vector2D position;
-    Vector2D velocity;
-    float rotationAngle; // Zwrót auta w radianach lub stopniach
-
-    ColorRGB color;
-    
-    TireCompound currentTires;
-    float tireDegradation; // 0.0 - 1.0
-};
-
-// Informacje o torze
-struct TrackInfo {
-    std::vector<Vector2D> innerBoundaries;
-    std::vector<Vector2D> outerBoundaries;
-    std::vector<Vector2D> optimalRacingLine; 
-};
-
-// Pełen "spersonalizowany" pakiet wiedzy dla bota w danej klatce
-struct Telemetry {
-    CarState myCar;
-    std::vector<CarState> opponents;
-    TrackInfo track;
-    float currentLapTime;
-    int lapsRemaining;
-};
-
+// 1. Definicja kolorów
 struct ColorRGB {
     uint8_t r;
     uint8_t g;
@@ -56,13 +13,41 @@ struct ColorRGB {
         : r(red), g(green), b(blue) {}
 };
 
+// 2. Wejście z bota do silnika (Tylko jedna definicja!)
 struct ControlOutput {
-    // Od -1.0 (pełen wsteczny) do 1.0 (gaz w podłogę)
-    float throttle = 0.0f; 
-    
-    // Od 0.0 (brak hamowania) do 1.0 (maksymalny wcisk hamulca)
-    float brake = 0.0f;    
-    
-    // Od -1.0 (maksymalnie w lewo) do 1.0 (maksymalnie w prawo)
+    float throttle = 0.0f; // od -1.0 (wsteczny) do 1.0 (gaz)
+    float brake = 0.0f;    // od 0.0 do 1.0 (hamulec)
     float steeringAngle = 0.0f; 
+};
+
+// 3. Enumy
+enum class TireCompound { Soft, Medium, Hard };
+
+// 4. Stan pojedynczego auta
+struct CarState {
+    int id;
+    Vector2D position;
+    Vector2D velocity;
+    float rotationAngle;
+    
+    ColorRGB color; 
+    
+    TireCompound currentTires;
+    float tireDegradation;
+};
+
+// 5. Informacje o torze
+struct TrackInfo {
+    std::vector<Vector2D> innerBoundaries;
+    std::vector<Vector2D> outerBoundaries;
+    std::vector<Vector2D> optimalRacingLine; 
+};
+
+// 6. Pełna telemetria dla botów
+struct Telemetry {
+    CarState myCar;
+    std::vector<CarState> opponents;
+    TrackInfo track;
+    float currentLapTime;
+    int lapsRemaining;
 };
