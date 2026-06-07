@@ -24,6 +24,7 @@ Projekt to symulator wyścigowy 2D, w którym główny nacisk położony jest ni
     * **Cel:** Wizualizacja aktualnego stanu symulacji. Odpowiada za renderowanie wygenerowanego kształtu toru, pojazdów (w oparciu o ich pozycje i rotację z silnika fizycznego) oraz rysowanie interfejsu diagnostycznego.
     * **Zależności:** Wykorzystuje zewnętrzną bibliotekę multimedialną (SDL2). Odczytuje dane w trybie "tylko do odczytu" z pozostałych komponentów po zakończeniu obliczeń logicznych w danej klatce.
 
+```text
     src/
 ├── main.cpp
 ├── Core/
@@ -40,6 +41,7 @@ Projekt to symulator wyścigowy 2D, w którym główny nacisk położony jest ni
     └── BlagojaBot.cpp           
 
     compile test_bots:
+```
 
 ```bash
 g++ test_bots.cpp Bots/IgorBot.cpp Bots/BlagojaBot.cpp Bots/TractorBot.cpp Bots/TestBot.cpp -o bot_test
