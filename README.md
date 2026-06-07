@@ -23,3 +23,25 @@ Projekt to symulator wyścigowy 2D, w którym główny nacisk położony jest ni
 * **Silnik Graficzny (Renderer)**
     * **Cel:** Wizualizacja aktualnego stanu symulacji. Odpowiada za renderowanie wygenerowanego kształtu toru, pojazdów (w oparciu o ich pozycje i rotację z silnika fizycznego) oraz rysowanie interfejsu diagnostycznego.
     * **Zależności:** Wykorzystuje zewnętrzną bibliotekę multimedialną (SDL2). Odczytuje dane w trybie "tylko do odczytu" z pozostałych komponentów po zakończeniu obliczeń logicznych w danej klatce.
+
+    src/
+├── main.cpp
+├── Core/
+│   ├── PhysicsEngine.h / .cpp   (Obliczenia: poślizg, kolizje (toglable dla zderzeń wyścigówek ze sobą), ruch)
+│   ├── Renderer.h / .cpp        (Rysowanie: okno, tor, sprite'y wyścigówek)
+│   └── TrackLoader.h / .cpp     (Logika czytania SVG i generowania granic)
+├── Shared/
+│   └── Telemetry.h              (Tylko definicje struktur: CarState, TrackInfo)
+├── API/
+│   ├── IBot.h                   (Interfejs z czysto wirtualnym on_tick)
+│   └── BotRegistry.h / .cpp     (Zarządca, który przechowuje listę skompilowanych botów)
+└── Bots/
+    ├── TwójBot.cpp              (przykładowe kody kod wyścigówek)
+    └── BlagojaBot.cpp           
+
+    compile test_bots:
+
+```bash
+g++ test_bots.cpp Bots/IgorBot.cpp Bots/BlagojaBot.cpp Bots/TractorBot.cpp Bots/TestBot.cpp -o bot_test
+```
+trzeba modyfikować zależnie od botów z których chcemy skorzystać
