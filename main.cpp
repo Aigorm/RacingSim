@@ -24,7 +24,8 @@ int main() {
 
     // 2. Wczytanie mapy i przekazanie jej do fizyki
     std::cout << "Wczytywanie toru z pliku SVG..." << std::endl;
-    TrackInfo trackData = trackLoader.loadFromSvg("assets/track1.svg");
+    // TrackInfo trackData = trackLoader.loadFromSvg("assets/track1.svg"); // TODO SWAP WITH THE LINE BELOW
+    TrackInfo trackData = trackLoader.loadFromTxt("assets/test_track.txt");
     physics.setTrack(trackData);
     
     // 3. Rejestracja botów i przygotowanie aut

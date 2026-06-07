@@ -47,3 +47,7 @@ Projekt to symulator wyścigowy 2D, w którym główny nacisk położony jest ni
 g++ test_bots.cpp Bots/IgorBot.cpp Bots/BlagojaBot.cpp Bots/TractorBot.cpp Bots/TestBot.cpp -o bot_test
 ```
 trzeba modyfikować zależnie od botów z których chcemy skorzystać
+
+```bash
+g++ track_renderer_test.cpp Core/Renderer.cpp Core/TrackLoader.cpp -o track_test -lSDL2
+```
