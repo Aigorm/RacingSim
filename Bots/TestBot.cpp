@@ -13,6 +13,10 @@ public:
     std::string getName() const override {
         return "TestBot";
     }
+
+    ColorRGB getColor() const override {
+        return ColorRGB(220, 20, 60); 
+    }
 };
 
 // Ta jedna linijka załatwia całą magię!

@@ -4,8 +4,14 @@
 
 // Co bot chce zrobić w danej klatce? (Wysyłane DO silnika fizycznego)
 struct ControlOutput {
-    float throttle = 0.0f;      // np. 1.0 (gaz w podłogę), -1.0 (hamulec/wsteczny)
-    float steeringAngle = 0.0f; // np. -1.0 (maksymalnie w lewo), 1.0 (maksymalnie w prawo)
+    // Od -1.0 (pełen wsteczny) do 1.0 (gaz w podłogę)
+    float throttle = 0.0f; 
+    
+    // Od 0.0 (brak hamowania) do 1.0 (maksymalny wcisk hamulca)
+    float brake = 0.0f;
+
+    // np. -1.0 (maksymalnie w lewo), 1.0 (maksymalnie w prawo)
+    float steeringAngle = 0.0f;
     
     ControlOutput() : throttle(0.0f), steeringAngle(0.0f) {}
 };
@@ -18,6 +24,8 @@ struct CarState {
     Vector2D position;
     Vector2D velocity;
     float rotationAngle; // Zwrót auta w radianach lub stopniach
+
+    ColorRGB color;
     
     TireCompound currentTires;
     float tireDegradation; // 0.0 - 1.0
@@ -37,4 +45,24 @@ struct Telemetry {
     TrackInfo track;
     float currentLapTime;
     int lapsRemaining;
+};
+
+struct ColorRGB {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    
+    ColorRGB(uint8_t red = 255, uint8_t green = 255, uint8_t blue = 255) 
+        : r(red), g(green), b(blue) {}
+};
+
+struct ControlOutput {
+    // Od -1.0 (pełen wsteczny) do 1.0 (gaz w podłogę)
+    float throttle = 0.0f; 
+    
+    // Od 0.0 (brak hamowania) do 1.0 (maksymalny wcisk hamulca)
+    float brake = 0.0f;    
+    
+    // Od -1.0 (maksymalnie w lewo) do 1.0 (maksymalnie w prawo)
+    float steeringAngle = 0.0f; 
 };

@@ -12,6 +12,10 @@ public:
     std::string getName() const override {
         return "IgorBot";
     }
+
+    ColorRGB getColor() const override {
+        return ColorRGB(220, 20, 60); 
+    }
 };
 
 REGISTER_BOT(IgorBot)
