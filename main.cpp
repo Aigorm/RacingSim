@@ -1,85 +1,91 @@
 #include <iostream>
-#include <chrono>
 #include <vector>
-
+#include <SDL2/SDL.h>
 #include "Core/PhysicsEngine.h"
 #include "Core/Renderer.h"
-#include "Core/TrackLoader.h"
-#include "API/BotRegistry.h"
 #include "Shared/Telemetry.h"
 
-int main() {
-    std::cout << "Uruchamianie 2D Auto Racing Simulator..." << std::endl;
+// Mock track generator
+TrackInfo createTestTrack() {
+    TrackInfo track;
+    // Outer wall: 100x80 rectangle
+    track.outerBoundaries = { {0,0}, {100,0}, {100,80}, {0,80} };
+    // Inner wall: 60x40 rectangle in the middle
+    track.innerBoundaries = { {20,20}, {80,20}, {80,60}, {20,60} };
+    return track;
+}
 
-    // 1. Inicjalizacja głównych komponentów
+int main(int argc, char* argv[]) {
+    std::cout << "--- Starting 2D Auto Racing Simulator ---\n";
+
     Renderer renderer;
-    TrackLoader trackLoader;
-    PhysicsEngine physics;
-    
-    // Konfiguracja Renderera (SDL2) - włączenie VSync
-    if (!renderer.init("Racing Sim 2D", 1280, 720, true)) {
-        std::cerr << "Błąd inicjalizacji grafiki!" << std::endl;
+    if (!renderer.init("Racing Sim 2D", 1280, 720, true)) { // true = VSync enabled
         return -1;
     }
 
-    // 2. Wczytanie mapy i przekazanie jej do fizyki
-    std::cout << "Wczytywanie toru z pliku SVG..." << std::endl;
-    TrackInfo trackData = trackLoader.loadFromSvg("assets/track1.svg");
-    physics.setTrack(trackData);
-    
-    // 3. Rejestracja botów i przygotowanie aut
-    auto& bots = BotRegistry::getBots(); 
-    std::cout << "Zarejestrowano botów: " << bots.size() << std::endl;
-    
-    if (bots.empty()) {
-        std::cerr << "Brak zarejestrowanych botów. Zakończenie programu." << std::endl;
-        return 0;
-    }
+    PhysicsEngine engine;
+    TrackInfo track = createTestTrack();
+    engine.setTrack(track);
+    engine.initCars(2); // Let's spawn 2 cars to see them both!
 
-    // Fizyka musi stworzyć odpowiednią liczbę pojazdów
-    physics.initCars(bots.size());
+    // Give the cars some colors
+    auto states = engine.getCarStates();
+    // Note: To modify the cars, you might need a setter in PhysicsEngine. 
+    // For now, we assume they default to white if not set.
 
-    // 4. Przygotowanie stopera do mierzenia deltaTime
-    using clock = std::chrono::high_resolution_clock;
-    auto lastTime = clock::now();
-
-    // 5. Główna pętla symulacji
+    float deltaTime = 1.0f / 60.0f; // 60 FPS physics step
     bool isRunning = true;
+
     while (isRunning) {
-        // A. Odmierzanie deltaTime (stoper)
-        auto currentTime = clock::now();
-        std::chrono::duration<float> elapsedTime = currentTime - lastTime;
-        lastTime = currentTime;
-        float deltaTime = elapsedTime.count();
+        isRunning = renderer.pollEvents();
 
-        // B. Sprawdzenie, czy użytkownik nie zamknął okna (obsługa zdarzeń)
-        if (renderer.pollEvents() == false) {
-            isRunning = false;
-            break;
-        }
-
-        // C. Zbieranie decyzji od botów
+        // Get the current state of the cars so our "Bots" can make decisions
+        auto states = engine.getCarStates();
         std::vector<ControlOutput> botInputs;
-        botInputs.reserve(bots.size());
 
-        for (size_t i = 0; i < bots.size(); ++i) {
-            // Fizyka generuje telemetrię z perspektywy konkretnego auta (id = i)
-            Telemetry currentTelemetry = physics.getTelemetryForBot(i);
-            
-            ControlOutput output;
-            // Odpytujemy bota gracza o decyzję w tej klatce
-            bots[i]->on_tick(currentTelemetry, output); 
-            botInputs.push_back(output);
+        for (size_t i = 0; i < states.size(); ++i) {
+            ControlOutput input;
+            input.throttle = 0.4f; // Drive at a safe, moderate speed
+            input.brake = 0.0f;
+            input.steeringAngle = 0.0f; // Default: go straight
+
+            // --- VERY SIMPLE ALGORITHMIC DRIVER ---
+            const auto& pos = states[i].position;
+            const auto& vel = states[i].velocity;
+
+            // 1. Approaching the right corner? Turn Left!
+            if (pos.x > 75.0f && vel.x > 0.0f) {
+                input.steeringAngle = 0.7f; 
+            }
+            // 2. Approaching the top corner? Turn Left!
+            else if (pos.y > 55.0f && vel.y > 0.0f) {
+                input.steeringAngle = 0.7f;
+            }
+            // 3. Approaching the left corner? Turn Left!
+            else if (pos.x < 25.0f && vel.x < 0.0f) {
+                input.steeringAngle = 0.7f;
+            }
+            // 4. Approaching the bottom corner? Turn Left!
+            else if (pos.y < 25.0f && vel.y < 0.0f) {
+                input.steeringAngle = 0.7f;
+            }
+
+            // (Optional) Make Car 1 drive slightly faster but turn wider
+            if (i == 1) {
+                input.throttle = 0.5f;
+                input.steeringAngle *= 0.8f;
+            }
+
+            botInputs.push_back(input);
         }
-        
-        // D. Aktualizacja świata (Fizyka)
-        // Silnik fizyczny oblicza nowe pozycje na podstawie wejścia i upływu czasu
-        physics.update(deltaTime, botInputs);
-        
-        // E. Renderowanie klatki
-        renderer.drawFrame(physics.getAllCarsState(), trackData);
-    }
 
-    std::cout << "Zamykanie symulatora..." << std::endl;
+        // Update Physics & Render
+        engine.update(deltaTime, botInputs);
+        renderer.drawFrame(engine.getCarStates(), track);
+
+        SDL_Delay(16); 
+    }
+    std::cout << "Shutting down cleanly...\n";
     return 0;
 }
+
