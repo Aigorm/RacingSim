@@ -5,39 +5,41 @@
 
 class PhysicsEngine {
 private:
-    //Wewnętrzny stan wszystkich pojazdów i toru
     std::vector<CarState> cars;
     TrackInfo currentTrack;
 
-    // TODO: Zdefiniować stałe fizyczne (masa aut, współczynniki tarcia opon, opór powietrza)
-    // float carMass = 1000.0f;
-    // float dragCoefficient = 0.05f;
+    float carMass = 800.0f;
+    float maxEngineForce = 8000.0f;
+    float maxBrakeForce = 12000.0f;
+    float dragCoefficient = 1.2f;
+    float rollingResistance = 30.0f;
+    float maxTurnRate = 5.0f;
+    float maxSteeringAngle = 0.6f;
+    float wheelbase = 2.5f;
 
-    // PRYWATNE FUNKCJE POMOCNICZE (Fazy obliczeń w jednej klatce)
+    static constexpr float GRAVITY = 9.81f;
+    static constexpr float CAR_RADIUS = 1.5f;
 
-    // Faza 1: Obliczanie wektorów sił (np. trakcja z opon) na podstawie ControlOutput
+    bool carCarCollisionsEnabled = true;
+
+    float getGripCoefficient(TireCompound compound) const;
+    float getDegradationRate(TireCompound compound) const;
+    static Vector2D closestPointOnSegment(const Vector2D& p, const Vector2D& a, const Vector2D& b);
+
     void applyForces(float deltaTime, const std::vector<ControlOutput>& inputs);
-
-    // Faza 2: Całkowanie numeryczne (np. metoda Eulera) - zmiana pozycji i prędkości
     void updatePositions(float deltaTime);
-
-    // Faza 3: Wykrywanie i rozwiązywanie kolizji ( najpierw tylko kolizje z torami, potem między autami ale zróbmy je toglablle na podstawie stałej)
     void resolveCollisions();
 
 public:
     PhysicsEngine() = default;
 
-    // TODO: Napisać logikę ustawiającą auta na polach startowych (np. grid alignment)
     void initCars(int numberOfCars);
-
-    // Przekazanie przetworzonych granic toru z TrackLoadera
     void setTrack(const TrackInfo& track) { currentTrack = track; }
-
-    // Główna funkcja wywoływana z main.cpp co klatkę (np. deltaTime = 0.016f)
     void update(float deltaTime, const std::vector<ControlOutput>& inputs);
-
     const std::vector<CarState>& getCarStates() const;
-
-    // Przepakowanie danych dla konkretnego bota (patrz w Telemetry.h)
     Telemetry getTelemetryForBot(int botId) const;
+
+    void setCarTires(int carId, TireCompound compound);
+    void setCarCarCollisions(bool enabled) { carCarCollisionsEnabled = enabled; }
+    bool getCarCarCollisions() const { return carCarCollisionsEnabled; }
 };
