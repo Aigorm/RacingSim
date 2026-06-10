@@ -20,7 +20,7 @@ private:
     static constexpr float GRAVITY = 9.81f;
     static constexpr float CAR_RADIUS = 1.5f;
 
-    bool carCarCollisionsEnabled = true;
+    bool carCarCollisionsEnabled = false;
 
     float getGripCoefficient(TireCompound compound) const;
     float getDegradationRate(TireCompound compound) const;

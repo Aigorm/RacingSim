@@ -51,3 +51,7 @@ trzeba modyfikować zależnie od botów z których chcemy skorzystać
 ```bash
 g++ track_renderer_test.cpp Core/Renderer.cpp Core/TrackLoader.cpp -o track_test -lSDL2
 ```
+
+```bash
+g++ main.cpp track_renderer_test.cpp Core/PhysicsEngine.cpp Core/Renderer.cpp -o racing_sim -lSDL2
+```

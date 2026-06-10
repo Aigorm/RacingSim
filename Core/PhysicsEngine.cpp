@@ -1,6 +1,8 @@
 #include "PhysicsEngine.h"
+#include "../API/BotRegistry.h"
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 float PhysicsEngine::getGripCoefficient(TireCompound compound) const {
     switch (compound) {
@@ -28,37 +30,91 @@ Vector2D PhysicsEngine::closestPointOnSegment(const Vector2D& p, const Vector2D&
     return a + ab * t;
 }
 
+void PhysicsEngine::initCars(int numberOfCars) {
+    cars.clear();
+    auto& bots = BotRegistry::getBots();
+
+    // 1. Zabezpieczenie: czy tor na pewno został wczytany?
+    if (currentTrack.optimalRacingLine.size() < 2) {
+        std::cerr << "Blad: Silnik fizyczny probuje ustawic auta, ale tor nie zostal wczytany!" << std::endl;
+        return;
+    }
+
+    // 2. Analiza linii startu (od punktu 0 do 1)
+    Vector2D p0 = currentTrack.optimalRacingLine[0];
+    Vector2D p1 = currentTrack.optimalRacingLine[1];
+
+    // Wektor kierunkowy (styczny) - gdzie jedziemy?
+    float dx = p1.x - p0.x;
+    float dy = p1.y - p0.y;
+    float length = std::sqrt(dx * dx + dy * dy);
+
+    if (length > 0.0f) {
+        dx /= length;
+        dy /= length;
+    } else {
+        dx = 1.0f; dy = 0.0f; // Domyślnie w prawo w razie błędu
+    }
+
+    // Kąt w radianach (atan2 zwraca kąt między osią X a wektorem)
+    float startRotation = std::atan2(dy, dx);
+
+    // Wektor prostopadły (normalny) - służy do przesuwania aut w bok
+    float nx = -dy;
+    float ny = dx;
+
+    // 3. Konfiguracja "Gridu" wyścigowego
+    float gridSpacingBackward = 30.0f; // O ile pikseli cofamy każde kolejne pole startowe
+    float gridSpacingLateral = 10.0f;  // O ile pikseli odsuwamy auto od osi toru (w lewo/prawo)
+
+    for (int i = 0; i < numberOfCars; ++i) {
+        CarState car;
+        car.id = i;
+
+        // Logika szachownicy: na przemian lewa i prawa strona toru
+        // i = 0 (Pole position) -> lewo (-1), i = 1 -> prawo (1), i = 2 -> lewo (-1)
+        float lateralMultiplier = (i % 2 == 0) ? -1.0f : 1.0f;
+
+        // Obliczamy finalną pozycję:
+        // Startujemy z p0, cofamy się o 'i * gridSpacingBackward', dodajemy przesunięcie boczne
+        car.position.x = p0.x - (dx * i * gridSpacingBackward) + (nx * lateralMultiplier * gridSpacingLateral);
+        car.position.y = p0.y - (dy * i * gridSpacingBackward) + (ny * lateralMultiplier * gridSpacingLateral);
+
+        car.velocity = {0.0f, 0.0f};
+        car.rotationAngle = startRotation;
+
+        // Wyciągamy kolor bezpośrednio z definicji bota gracza
+        if (i < bots.size()) {
+            car.color = bots[i]->getColor();
+        } else {
+            car.color = ColorRGB(255, 255, 255); // Domyślnie biały
+        }
+
+        car.currentTires = TireCompound::Medium;
+        car.tireDegradation = 1.0f;
+
+        cars.push_back(car);
+    }
+}
+
 // void PhysicsEngine::initCars(int numberOfCars) {
 //     cars.clear();
 //     cars.resize(numberOfCars);
 //     for (int i = 0; i < numberOfCars; ++i) {
 //         cars[i].id = i;
-//         cars[i].position = Vector2D(10.0f + (i % 2) * 4.0f,
-//                                      15.0f + (i / 2) * 6.0f);
+//         // Spawning at Y=10 (center of the track), spaced out along the X axis
+//         cars[i].position = Vector2D(15.0f + (i * 10.0f), 10.0f); 
 //         cars[i].velocity = Vector2D(0.0f, 0.0f);
-//         cars[i].rotationAngle = 0.0f;
+//         cars[i].rotationAngle = 0.0f; // Facing directly right (+X)
+        
+//         // Give them distinct colors!
+//         if (i == 0) cars[i].color = {255, 50, 50}; // Red car
+//         else cars[i].color = {50, 150, 255};       // Blue car
+
 //         cars[i].currentTires = TireCompound::Medium;
 //         cars[i].tireDegradation = 0.0f;
 //     }
 // }
-void PhysicsEngine::initCars(int numberOfCars) {
-    cars.clear();
-    cars.resize(numberOfCars);
-    for (int i = 0; i < numberOfCars; ++i) {
-        cars[i].id = i;
-        // Spawning at Y=10 (center of the track), spaced out along the X axis
-        cars[i].position = Vector2D(15.0f + (i * 10.0f), 10.0f); 
-        cars[i].velocity = Vector2D(0.0f, 0.0f);
-        cars[i].rotationAngle = 0.0f; // Facing directly right (+X)
-        
-        // Give them distinct colors!
-        if (i == 0) cars[i].color = {255, 50, 50}; // Red car
-        else cars[i].color = {50, 150, 255};       // Blue car
-
-        cars[i].currentTires = TireCompound::Medium;
-        cars[i].tireDegradation = 0.0f;
-    }
-}
 void PhysicsEngine::setCarTires(int carId, TireCompound compound) {
     if (carId >= 0 && carId < static_cast<int>(cars.size())) {
         cars[carId].currentTires = compound;
