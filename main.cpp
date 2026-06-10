@@ -78,7 +78,7 @@ int main() {
         physics.update(deltaTime, botInputs);
         
         // E. Renderowanie klatki
-        renderer.drawFrame(physics.getAllCarsState(), trackData);
+        renderer.drawFrame(physics.getCarStates(), trackData);
     }
 
     std::cout << "Zamykanie symulatora..." << std::endl;
