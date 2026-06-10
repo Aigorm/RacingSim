@@ -81,8 +81,7 @@ void Renderer::drawFrame(const std::vector<CarState>& cars, const TrackInfo& tra
     // 2. Rysowanie toru
     drawTrack(track);
 
-    // TODO: W przyszłości dodamy tu pętlę po autach:
-    // for (const auto& car : cars) { drawCar(car); }
+    for (const auto& car : cars) { drawCar(car); }
 
     // 3. Wyrzucenie klatki na monitor (tu program zablokuje się dzięki VSync)
     SDL_RenderPresent(sdlRenderer);
@@ -200,4 +199,78 @@ void Renderer::drawTrack(const TrackInfo& track) {
         // 5. Rysujemy na ekranie
         SDL_RenderGeometry(sdlRenderer, nullptr, startLineVertices.data(), startLineVertices.size(), startLineIndices.data(), startLineIndices.size());
     }
+}
+
+void Renderer::drawCar(const CarState& car) {
+    // Zakładamy, że wektor kierunku auta to w matematyce oś X.
+    // Zatem kąt 0 radianów oznacza auto skierowane w prawo.
+    float cosA = std::cos(car.rotationAngle);
+    float sinA = std::sin(car.rotationAngle);
+    float cx = car.position.x;
+    float cy = car.position.y;
+
+    // POMOCNICZA LAMBDA: Obraca lokalne punkty auta (względem jego środka) na współrzędne świata
+    auto transform = [&](float localX, float localY) -> SDL_FPoint {
+        return {
+            cx + (localX * cosA - localY * sinA),
+            cy + (localX * sinA + localY * cosA)
+        };
+    };
+
+    // POMOCNICZA LAMBDA: Rysuje prostokąt
+    auto drawQuad = [&](float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, SDL_Color color) {
+        SDL_Vertex verts[4];
+        SDL_FPoint p1 = transform(x1, y1); verts[0] = { {p1.x, p1.y}, color, {0,0} };
+        SDL_FPoint p2 = transform(x2, y2); verts[1] = { {p2.x, p2.y}, color, {0,0} };
+        SDL_FPoint p3 = transform(x3, y3); verts[2] = { {p3.x, p3.y}, color, {0,0} };
+        SDL_FPoint p4 = transform(x4, y4); verts[3] = { {p4.x, p4.y}, color, {0,0} };
+
+        int indices[6] = {0, 1, 2, 0, 2, 3};
+        SDL_RenderGeometry(sdlRenderer, nullptr, verts, 4, indices, 6);
+    };
+
+    // POMOCNICZA LAMBDA: Rysuje trójkąt kierunkowy
+    auto drawTriangle = [&](float x1, float y1, float x2, float y2, float x3, float y3, SDL_Color color) {
+        SDL_Vertex verts[3];
+        SDL_FPoint p1 = transform(x1, y1); verts[0] = { {p1.x, p1.y}, color, {0,0} };
+        SDL_FPoint p2 = transform(x2, y2); verts[1] = { {p2.x, p2.y}, color, {0,0} };
+        SDL_FPoint p3 = transform(x3, y3); verts[2] = { {p3.x, p3.y}, color, {0,0} };
+
+        int indices[3] = {0, 1, 2};
+        SDL_RenderGeometry(sdlRenderer, nullptr, verts, 3, indices, 3);
+    };
+
+    // --- KOLORY ---
+    SDL_Color bodyColor = {car.color.r, car.color.g, car.color.b, 255};
+    SDL_Color black = {0, 0, 0, 255};
+    // Delikatnie przyciemniony kolor dla trójkąta z przodu, żeby odcinał się od maski
+    SDL_Color darkBodyColor = {
+        static_cast<Uint8>(car.color.r * 0.7), 
+        static_cast<Uint8>(car.color.g * 0.7), 
+        static_cast<Uint8>(car.color.b * 0.7), 
+        255
+    };
+
+    // --- GEOMETRIA AUTA (Wymiary lokalne) ---
+    // Oś X to przód/tył, Oś Y to lewo/prawo. Środek auta to (0,0).
+    const float L = 12.0f; // Połowa długości (X)
+    const float W = 6.0f;  // Połowa szerokości (Y)
+    
+    // 1. KOŁA (Czarne prostokąty delikatnie wystające poza obrys karoserii)
+    // Lewe-Przód
+    drawQuad(L-4, -W-2, L+2, -W-2, L+2, -W+1, L-4, -W+1, black);
+    // Prawe-Przód
+    drawQuad(L-4, W-1,  L+2, W-1,  L+2, W+2,  L-4, W+2,  black);
+    // Lewe-Tył
+    drawQuad(-L, -W-2, -L+6, -W-2, -L+6, -W+1, -L, -W+1, black);
+    // Prawe-Tył
+    drawQuad(-L, W-1,  -L+6, W-1,  -L+6, W+2,  -L, W+2,  black);
+
+    // 2. KAROSERIA (Główny prostokąt)
+    // Kolejność: Prawy-Przód, Lewy-Przód, Lewy-Tył, Prawy-Tył
+    drawQuad(L, W, L, -W, -L, -W, -L, W, bodyColor);
+
+    // 3. TRÓJKĄT KIERUNKOWY (Maska/Nos auta)
+    // Rysowany z przodu karoserii (wyciągnięty o 6 pikseli w stronę osi X)
+    drawTriangle(L, -W, L, W, L+6, 0.0f, darkBodyColor);
 }
