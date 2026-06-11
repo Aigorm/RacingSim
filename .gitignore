@@ -7,7 +7,10 @@ ENV/
 env.bak/
 venv.bak/
 
-# Cache i skompilowane pliki Pythona (zalecane)
+#exe
+AutonomousRacing
+
+# Cache i skompilowane pliki Pythona
 __pycache__/
 *.py[cod]
 *$py.class
