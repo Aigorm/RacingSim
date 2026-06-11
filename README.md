@@ -50,7 +50,7 @@ Nastepnie uruchom plik wykonywalny:
 ## Dodawanie Nowych Torow (TrackCreator)
 
 Projekt wspiera dowolne, niestandardowe tory wyscigowe. Aby stworzyc wlasny tor:
-1. Narysuj petle uzywajac narzedzia sciezki (krzywe Beziera) w dowolnym programie wektorowym (np. Inkscape lub https://editor.graphite.art/) i zapisz jako zwykly plik .svg w folderze TrackCreator/.
+1. Narysuj petle uzywajac narzedzia sciezki (krzywe Beziera) w dowolnym programie wektorowym (np. Inkscape lub https://editor.graphite.art/) i zapisz jako zwykly plik .svg w folderze TrackCreator/ (upewnij się, że twój tor jest złożony z jednej "gładkiej" (bez kontów) krzywej która tworzy pętlę).
 2. Upewnij sie, ze masz zainstalowanego Pythona i biblioteke: `pip install svgpathtools`.
 3. Uruchom skrypt z poziomu folderu TrackCreator:
 ```bash
