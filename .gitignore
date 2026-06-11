@@ -1,0 +1,14 @@
+# Środowiska wirtualne
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# Cache i skompilowane pliki Pythona (zalecane)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so

@@ -34,6 +34,12 @@ struct CarState {
     
     TireCompound currentTires;
     float tireDegradation;
+
+    // Zmienne wyścigowe
+    int lapsCompleted = 0;
+    int nextSectorToClear = 1; // Auto zaczyna na mecie, więc szuka 1. sektora
+    bool isFinished = false;
+    float finishTime = 0.0f;
 };
 
 // 5. Informacje o torze

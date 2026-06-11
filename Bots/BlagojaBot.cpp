@@ -5,7 +5,7 @@
 class BlagojaBot : public IBot {
 public:
     void on_tick(const Telemetry& data, ControlOutput& out) override {
-        std::cout << "[BlagojaBot] Analizuje telemetrie. Trzymam sie optymalnej linii." << std::endl;
+        // std::cout << "[BlagojaBot] Analizuje telemetrie. Trzymam sie optymalnej linii." << std::endl;
         out.throttle = 0.8f;
         out.steeringAngle = 0.2f;
     }

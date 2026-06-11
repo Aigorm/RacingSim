@@ -54,5 +54,5 @@ g++ track_renderer_test.cpp Core/Renderer.cpp Core/TrackLoader.cpp -o track_test
 
 Kompilacja maina
 ```bash
-g++ main.cpp Core/Renderer.cpp Core/TrackLoader.cpp Core/PhysicsEngine.cpp Bots/IgorBot.cpp Bots/BlagojaBot.cpp Bots/TractorBot.cpp -o racing_sim -lSDL2
+g++ main.cpp Core/Renderer.cpp Core/TrackLoader.cpp Core/PhysicsEngine.cpp Bots/IgorBot.cpp Bots/BlagojaBot.cpp Bots/LineBot.cpp -o racing_sim -lSDL2
 ```

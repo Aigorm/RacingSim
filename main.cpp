@@ -23,9 +23,8 @@ int main() {
     }
 
     // 2. Wczytanie mapy i przekazanie jej do fizyki
-    std::cout << "Wczytywanie toru z pliku SVG..." << std::endl;
-    // TrackInfo trackData = trackLoader.loadFromSvg("assets/track1.svg"); // TODO SWAP WITH THE LINE BELOW
-    TrackInfo trackData = trackLoader.loadFromTxt("assets/test_track.txt");
+    std::cout << "Wczytywanie pliku toru..." << std::endl;
+    TrackInfo trackData = trackLoader.loadFromTxt("assets/Track_1_asymetric.txt");
     physics.setTrack(trackData);
     
     // 3. Rejestracja botów i przygotowanie aut
@@ -37,8 +36,8 @@ int main() {
         return 0;
     }
 
-    // Fizyka musi stworzyć odpowiednią liczbę pojazdów
     physics.initCars(bots.size());
+    physics.setTargetLaps(3);
 
     // 4. Przygotowanie stopera do mierzenia deltaTime
     using clock = std::chrono::high_resolution_clock;
@@ -46,17 +45,22 @@ int main() {
 
     // 5. Główna pętla symulacji
     bool isRunning = true;
-    while (isRunning) {
+    while (isRunning && !physics.isRaceFinished()) {
         // A. Odmierzanie deltaTime (stoper)
         auto currentTime = clock::now();
         std::chrono::duration<float> elapsedTime = currentTime - lastTime;
         lastTime = currentTime;
-        float deltaTime = elapsedTime.count();
+        float deltaTime = (elapsedTime.count()*4.0);
+        //przemnożyłęm aby przyspieszyć czas
 
         // B. Sprawdzenie, czy użytkownik nie zamknął okna (obsługa zdarzeń)
         if (renderer.pollEvents() == false) {
             isRunning = false;
             break;
+        }
+
+        if (renderer.pollEvents() == false) {
+            isRunning = false;
         }
 
         // C. Zbieranie decyzji od botów
@@ -80,6 +84,23 @@ int main() {
         // E. Renderowanie klatki
         renderer.drawFrame(physics.getCarStates(), trackData);
     }
+
+    // --- CEREMONIA ZAKOŃCZENIA (Podium) ---
+    std::cout << "\n===================================" << std::endl;
+    std::cout << "         WYSCIG ZAKONCZONY!        " << std::endl;
+    std::cout << "===================================" << std::endl;
+    
+    auto ranking = physics.getRanking();
+
+    for (size_t pos = 0; pos < ranking.size(); ++pos) {
+        int carId = ranking[pos];
+        // Ponieważ przechowujemy ID jako pozycję w wektorze, mamy łatwy dostęp do bota:
+        std::string botName = (carId < bots.size()) ? bots[carId]->getName() : "Nieznany Bot";
+        
+        std::cout << "Miejsce " << (pos + 1) << ": " << botName 
+                  << " (Auto #" << carId << ")" << std::endl;
+    }
+    std::cout << "===================================\n" << std::endl;
 
     std::cout << "Zamykanie symulatora..." << std::endl;
     return 0;

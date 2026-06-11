@@ -9,14 +9,16 @@ private:
     TrackInfo currentTrack;
 
     float carMass = 800.0f;
-    float maxEngineForce = 8000.0f;
+    float maxEngineForce = 10000.0f;
     float maxBrakeForce = 12000.0f;
     float dragCoefficient = 1.2f;
     float rollingResistance = 30.0f;
     float maxTurnRate = 5.0f;
     float maxSteeringAngle = 0.6f;
     float wheelbase = 2.5f;
-
+    
+    const float aeroDownforceMultiplier = 0.05f;
+    
     static constexpr float GRAVITY = 9.81f;
     static constexpr float CAR_RADIUS = 1.5f;
 
@@ -30,6 +32,10 @@ private:
     void updatePositions(float deltaTime);
     void resolveCollisions();
 
+    float totalRaceTime = 0.0f;
+    int targetLaps = 3; // Globalny int z liczbą okrążeń
+    std::vector<int> raceRanking; // Przechowuje ID aut, które dojechały do mety
+
 public:
     PhysicsEngine() = default;
 
@@ -42,4 +48,9 @@ public:
     void setCarTires(int carId, TireCompound compound);
     void setCarCarCollisions(bool enabled) { carCarCollisionsEnabled = enabled; }
     bool getCarCarCollisions() const { return carCarCollisionsEnabled; }
+
+    void setTargetLaps(int laps) { targetLaps = laps; }
+    bool isRaceFinished() const { return raceRanking.size() == cars.size() && !cars.empty(); }
+    const std::vector<int>& getRanking() const { return raceRanking; }
+    float getTotalTime() const { return totalRaceTime; }
 };

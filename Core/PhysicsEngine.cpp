@@ -6,20 +6,20 @@
 
 float PhysicsEngine::getGripCoefficient(TireCompound compound) const {
     switch (compound) {
-        case TireCompound::Soft:   return 1.3f;
-        case TireCompound::Medium: return 1.0f;
-        case TireCompound::Hard:   return 0.8f;
+        case TireCompound::Soft:   return 2.5f; // Zwiększone z 1.3
+        case TireCompound::Medium: return 2.0f; // Zwiększone z 1.0
+        case TireCompound::Hard:   return 1.6f; // Zwiększone z 0.8
     }
-    return 1.0f;
+    return 2.0f;
 }
 
 float PhysicsEngine::getDegradationRate(TireCompound compound) const {
     switch (compound) {
-        case TireCompound::Soft:   return 0.008f;
-        case TireCompound::Medium: return 0.004f;
-        case TireCompound::Hard:   return 0.002f;
+        case TireCompound::Soft:   return 0.004f;
+        case TireCompound::Medium: return 0.002f;
+        case TireCompound::Hard:   return 0.001f;
     }
-    return 0.004f;
+    return 0.002f;
 }
 
 Vector2D PhysicsEngine::closestPointOnSegment(const Vector2D& p, const Vector2D& a, const Vector2D& b) {
@@ -91,7 +91,12 @@ void PhysicsEngine::initCars(int numberOfCars) {
         }
 
         car.currentTires = TireCompound::Medium;
-        car.tireDegradation = 1.0f;
+        car.tireDegradation = 0.0f;
+        
+        car.lapsCompleted = 0;
+        car.nextSectorToClear = 1;
+        car.isFinished = false;
+        car.finishTime = 0.0f;
 
         cars.push_back(car);
     }
@@ -147,7 +152,9 @@ void PhysicsEngine::applyForces(float deltaTime, const std::vector<ControlOutput
         float gripBase = getGripCoefficient(car.currentTires);
         float degradationPenalty = car.tireDegradation * 0.7f;
         float grip = gripBase * std::max(0.3f, 1.0f - degradationPenalty);
-        float maxLateralForce = grip * carMass * GRAVITY;
+        
+        float downforce = (carMass * GRAVITY) + (0.05f * speed * speed);
+        float maxLateralForce = grip * downforce;
 
         // Lateral dynamics — eliminate sideways velocity up to grip limit
         float lateralSpeed = car.velocity.dot(lateral);
@@ -269,9 +276,72 @@ void PhysicsEngine::resolveCollisions() {
 
 void PhysicsEngine::update(float deltaTime, const std::vector<ControlOutput>& inputs) {
     if (deltaTime <= 0.0f) return;
+    
+    // 1. FIZYKA JAZDY
     applyForces(deltaTime, inputs);
     updatePositions(deltaTime);
     resolveCollisions();
+
+    // 2. LOGIKA WYŚCIGOWA (Sędzia)
+    totalRaceTime += deltaTime;
+
+    int totalPoints = currentTrack.optimalRacingLine.size();
+    if (totalPoints == 0) return; // Zabezpieczenie przed brakiem toru
+
+    int numSectors = 20; 
+    float checkpointRadiusSq = 20.0f * 20.0f; 
+
+    for (auto& car : cars) {
+        // if (car.isFinished) continue;
+
+        // B. DETEKCJA OKRĄŻEŃ (Płaszczyzna prostopadła - Iloczyn Skalarny)
+        
+        int targetPointIndex = (car.nextSectorToClear * (totalPoints / numSectors)) % totalPoints;
+        Vector2D targetPos = currentTrack.optimalRacingLine[targetPointIndex];
+
+        // Wyliczamy punkt "następny" na torze, aby ustalić, w którą stronę prowadzi trasa
+        int nextTrackPointIndex = (targetPointIndex + 1) % totalPoints;
+        Vector2D nextPos = currentTrack.optimalRacingLine[nextTrackPointIndex];
+
+        // 1. Wektor kierunku toru w miejscu checkpointu
+        Vector2D trackForward = (nextPos - targetPos).normalized();
+
+        // 2. Wektor od checkpointu do samochodu
+        Vector2D toCar = car.position - targetPos;
+
+        // 3. Sprawdzamy ogólny dystans, żeby nie zaliczyć checkpointu z drugiej strony mapy
+        // Ustawiamy bezpiecznie duży zasięg (np. 150 pikseli), bo precyzję zapewni nam płaszczyzna
+        float distanceSq = toCar.magnitudeSquared();
+        float maxTriggerDistanceSq = 150.0f * 150.0f; 
+
+        if (distanceSq <= maxTriggerDistanceSq) {
+            
+            // 4. Magia iloczynu skalarnego (Dot Product)
+            // Jeśli wynik jest dodatni (> 0), oznacza to, że auto geometrycznie 
+            // przekroczyło prostopadłą linię checkpointu w kierunku jazdy.
+            float dotProduct = trackForward.dot(toCar);
+
+            if (dotProduct >= 0.0f) {
+                car.nextSectorToClear++; 
+                
+                if (car.nextSectorToClear > numSectors) {
+                    car.nextSectorToClear = 1; 
+                    car.lapsCompleted++;
+                    
+                    std::cout << "[SEDZIA] Auto ID " << car.id << " zakonczylo okrazenie " 
+                              << car.lapsCompleted << "/" << targetLaps << std::endl;
+
+                    if (car.lapsCompleted == targetLaps) {
+                        car.isFinished = true;
+                        car.finishTime = totalRaceTime;
+                        raceRanking.push_back(car.id); 
+                        std::cout << "[SEDZIA] Auto ID " << car.id << " WPADA NA METE! Czas: " 
+                                  << totalRaceTime << "s" << std::endl;
+                    }
+                }
+            }
+        }
+    }
 }
 
 const std::vector<CarState>& PhysicsEngine::getCarStates() const {
@@ -289,7 +359,9 @@ Telemetry PhysicsEngine::getTelemetryForBot(int botId) const {
         }
     }
     t.track = currentTrack;
-    t.currentLapTime = 0.0f;
-    t.lapsRemaining = 0;
+
+    t.currentLapTime = totalRaceTime;
+    t.lapsRemaining = targetLaps - t.myCar.lapsCompleted;
+
     return t;
 }
