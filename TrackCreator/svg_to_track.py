@@ -4,7 +4,6 @@ from svgpathtools import svg2paths
 def main():
     print("=== Konwerter Torow: SVG -> TXT (Auto-Centrowanie) ===")
     
-    # Parametry Twojego okna w SDL2
     WINDOW_WIDTH = 1280.0
     WINDOW_HEIGHT = 720.0
     
@@ -53,7 +52,7 @@ def main():
         t = i / float(num_points)
         raw_points.append(track_path.point(t))
 
-    # 4. Matematyczne centrowanie (Magia)
+    # 4. Matematyczne centrowanie
     # Znajdujemy skrajne wartości X i Y
     min_x = min(p.real for p in raw_points)
     max_x = max(p.real for p in raw_points)

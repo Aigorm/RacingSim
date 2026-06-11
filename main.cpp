@@ -24,7 +24,7 @@ int main() {
 
     // 2. Wczytanie mapy i przekazanie jej do fizyki
     std::cout << "Wczytywanie pliku toru..." << std::endl;
-    TrackInfo trackData = trackLoader.loadFromTxt("assets/Track_1_asymetric.txt");
+    TrackInfo trackData = trackLoader.loadFromTxt("assets/Track_1.txt");
     physics.setTrack(trackData);
     
     // 3. Rejestracja botów i przygotowanie aut
