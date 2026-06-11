@@ -1,58 +1,108 @@
-# 2D Auto Racing Simulator
+# 2D Autonomous Racing Simulator
 
-## Zamysł projektu
+## Zamysl Projektu
+Ten projekt to zaawansowany symulator wyscigow samochodowych 2D, zaprojektowany nie jako standardowa gra zrecznosciowa, lecz jako arena algorytmiczna dla autonomicznych botow. Zamiast sterowania klawiatura, uzytkownicy pisza wlasne skrypty, ktore analizuja telemetrie pojazdu w czasie rzeczywistym i podejmuja decyzje o kacie skretu, przyspieszeniu i hamowaniu.
 
-Projekt to symulator wyścigowy 2D, w którym główny nacisk położony jest nie na zręcznościowe sterowanie pojazdem, lecz na rywalizację algorytmiczną. Zamiast manualnej kontroli, gracze tworzą własne "boty" wyścigowe, pisząc kod logiki pojazdu w klasie dziedziczącej po wspólnym interfejsie. Co każdą klatkę symulacji (wewnątrz metody `onTick`), boty otrzymują pełną telemetrię wyścigu i na jej podstawie samodzielnie obliczają wektory przyspieszenia oraz skrętu.
+Symulator kladzie ogromny nacisk na fizyke jazdy. Silnik (Physics Engine) implementuje realistyczny model kinematyczny, uwzgledniajac mase pojazdu, sile docisku aerodynamicznego, slizg oraz degradacje opon, zmuszajac tworcow botow do optymalizacji trajektorii i predkosci, a nie tylko podazania "po sznurku".
 
-Środowisko fizyczne opiera się na ciągłych modelach matematycznych. Kształt toru jest generowany analitycznie na podstawie linii środkowej zaczytywanej z pliku wektorowego (SVG). Pozwala to na precyzyjne i pozbawione błędów "schodkowania" obliczanie kolizji i granic jezdni. Projekt symuluje również zaawansowane aspekty wyścigowe, takie jak zużycie opon, zmuszając logikę graczy do optymalizacji strategii na torze i wyliczania optymalnych okien zjazdowych do pitstopu w zależności od zachowania rywali.
+## Glowne Funkcjonalnosci
+* Realistyczna Fizyka: Implementacja oporow toczenia, oporu aerodynamicznego, limitow przyczepnosci bocznej opon oraz zuzycia ogumienia.
+* Bezbledny System Sedziowski: Wykorzystanie matematyki wektorowej i detekcji przeciecia odcinkow do weryfikacji okrazen i eliminacji oszustw.
+* Telemetryczny Interfejs Botow: Zunifikowane srodowisko, w ktorym kazdy bot operuje na identycznych danych wejsciowych (pozycja wlasna, przeciwnicy, uklad toru).
+* Narzedzie TrackCreator: Zautomatyzowany konwerter plikow graficznych SVG na wektorowe trasy wyscigowe gotowe do importu przez silnik.
 
-## Główne komponenty, ich zależności i cele
+---
 
-* **Silnik Fizyczny (Physics Engine)**
-    * **Cel:** Symulacja realistycznej kinematyki pojazdów w przestrzeni 2D. Odpowiada za obliczanie przyczepności, poślizgu, degradacji opon oraz precyzyjne wykrywanie kolizji..
-    * **Zależności:** Otrzymuje wejście (sterowanie) z Modułu Botów oraz ciągłe granice mapy z Modułu Toru.
+## Struktura Projektu
 
-* **Moduł Toru (SvgTrackLoader i Track Data)**
-    * **Cel:** Przetwarzanie zewnętrznych plików z trasami do postaci matematycznej. Wczytuje ścieżkę wektorową (centerline) z pliku SVG, dokonuje parsingu danych i analitycznie generuje płynne zewnętrzne i wewnętrzne granice toru.
-    * **Zależności:** Wymaga lekkiej biblioteki do parsowania XML (np. pugixml lub TinyXML-2). Przekazuje wyliczone wielokąty i wektory normalne do Silnika Fizycznego oraz Silnika Graficznego.
+Projekt zostal podzielony na logiczne moduly zgodnie z zasadami programowania zorientowanego obiektowo:
 
-* **Architektura Botów (Bot API & Telemetry)**
-    * **Cel:** Zapewnienie bezpiecznego i modułowego środowiska dla kodu graczy. Wykorzystuje polimorfizm (interfejs bazowy) oraz stałe referencje do przekazywania danych telemetrycznych (pozycja, wektory prędkości, stan mieszanki opon), chroniąc przed nieuczciwą modyfikacją stanu gry. Stosuje wzorzec statycznej rejestracji do automatycznego włączania nowych botów do wyścigu podczas kompilacji.
-    * **Zależności:** Niezależny zbiór plików, który wchodzi w interakcję jedynie ze ściśle określoną strukturą danych dostarczaną przez rdzeń silnika.
+* API/ - Interfejsy i architektura wtyczek. Zawiera klase bazowa IBot oraz BotRegistry do automatycznej rejestracji sztucznej inteligencji.
+* assets/ - Folder docelowy na wygenerowane pliki tekstowe tras (.txt).
+* Bots/ - Implementacje konkretnych algorytmow sterujacych (np. LineFollowerBot, IgorBot). To tutaj piszesz swoj kod wyscigowy.
+* Core/ - Jadro symulatora. Zawiera PhysicsEngine (obliczenia wektorowe), TrackLoader (parsowanie map) oraz Renderer (obsluga SDL2).
+* Shared/ - Struktury danych dzielone miedzy silnikiem a botami (np. Vector2D, Telemetry, ControlOutput).
+* TrackCreator/ - Narzedzia pomocnicze, w tym skrypt Pythona do generowania nowych map.
 
-* **Silnik Graficzny (Renderer)**
-    * **Cel:** Wizualizacja aktualnego stanu symulacji. Odpowiada za renderowanie wygenerowanego kształtu toru, pojazdów (w oparciu o ich pozycje i rotację z silnika fizycznego) oraz rysowanie interfejsu diagnostycznego.
-    * **Zależności:** Wykorzystuje zewnętrzną bibliotekę multimedialną (SDL2). Odczytuje dane w trybie "tylko do odczytu" z pozostałych komponentów po zakończeniu obliczeń logicznych w danej klatce.
+---
 
-```text
-    src/
-├── main.cpp
-├── Core/
-│   ├── PhysicsEngine.h / .cpp   (Obliczenia: poślizg, kolizje (toglable dla zderzeń wyścigówek ze sobą), ruch)
-│   ├── Renderer.h / .cpp        (Rysowanie: okno, tor, sprite'y wyścigówek)
-│   └── TrackLoader.h / .cpp     (Logika czytania SVG i generowania granic)
-├── Shared/
-│   └── Telemetry.h              (Tylko definicje struktur: CarState, TrackInfo)
-├── API/
-│   ├── IBot.h                   (Interfejs z czysto wirtualnym on_tick)
-│   └── BotRegistry.h / .cpp     (Zarządca, który przechowuje listę skompilowanych botów)
-└── Bots/
-    ├── TwójBot.cpp              (przykładowe kody kod wyścigówek)
-    └── BlagojaBot.cpp           
+## Kompilacja i Uruchomienie
 
-    compile test_bots:
-```
+### Wymagania systemowe
+* Kompilator C++ (wspierajacy standard C++17 lub nowszy, np. g++).
+* Biblioteka graficzna SDL2 (Simple DirectMedia Layer).
+
+### Przykladowa kompilacja (Linux / MinGW)
+Aby skompilowac projekt, nalezy zlinkowac wszystkie pliki .cpp oraz biblioteke SDL2. Bedac w glownym folderze projektu, uruchom:
 
 ```bash
-g++ test_bots.cpp Bots/IgorBot.cpp Bots/BlagojaBot.cpp Bots/TractorBot.cpp Bots/TestBot.cpp -o bot_test
-```
-trzeba modyfikować zależnie od botów z których chcemy skorzystać
-
-```bash
-g++ track_renderer_test.cpp Core/Renderer.cpp Core/TrackLoader.cpp -o track_test -lSDL2
+g++ main.cpp Core/*.cpp Bots/*.cpp -o AutonomousRacing -lSDL2
 ```
 
-Kompilacja maina
+Nastepnie uruchom plik wykonywalny:
+
 ```bash
-g++ main.cpp Core/Renderer.cpp Core/TrackLoader.cpp Core/PhysicsEngine.cpp Bots/IgorBot.cpp Bots/BlagojaBot.cpp Bots/LineBot.cpp -o racing_sim -lSDL2
+./AutonomousRacing
+```
+
+---
+
+## Dodawanie Nowych Torow (TrackCreator)
+
+Projekt wspiera dowolne, niestandardowe tory wyscigowe. Aby stworzyc wlasny tor:
+1. Narysuj petle uzywajac narzedzia sciezki (krzywe Beziera) w dowolnym programie wektorowym (np. Inkscape lub https://editor.graphite.art/) i zapisz jako zwykly plik .svg w folderze TrackCreator/.
+2. Upewnij sie, ze masz zainstalowanego Pythona i biblioteke: `pip install svgpathtools`.
+3. Uruchom skrypt z poziomu folderu TrackCreator:
+```bash
+python svg_to_track.py
+```
+4. Podaj nazwe pliku oraz szerokosci jezdni. Skrypt automatycznie wysrodkuje tor, przeliczy krzywe na wektory i zapisze gotowy plik .txt bezposrednio w folderze assets/.
+
+### Jak zaladowac nowy tor do symulatora?
+Otworz plik main.cpp w glownym folderze i znajdz instrukcje odpowiedzialna za ladowanie sciezki. Zmien argument na nazwe swojego nowo wygenerowanego pliku:
+
+```cpp
+// Przyklad zmiany toru w main.cpp
+TrackLoader loader;
+TrackInfo myTrack = loader.loadTrack("assets/moj_nowy_tor.txt"); 
+physics.setTrack(myTrack);
+```
+
+---
+
+## Tworzenie Wlasnego Bota
+
+Tworzenie nowych zawodnikow jest zautomatyzowane dzieki systemowi makr. Nie musisz modyfikowac petli glownej main.cpp, aby dodac auto!
+
+1. Stworz nowy plik .cpp w folderze Bots/ (np. MyProBot.cpp).
+2. Zalacz bazowe naglowki i odziedzicz klase po IBot.
+3. Zaimplementuj metode on_tick(), ktora wylicza zachowanie co klatke.
+4. Na samym koncu pliku uzyj makra REGISTER_BOT.
+
+Szablon:
+
+```cpp
+#include "../API/IBot.h"
+#include "../API/BotRegistry.h"
+
+class MyProBot : public IBot {
+public:
+    void on_tick(const Telemetry& data, ControlOutput& out) override {
+        // Tu zaimplementuj swoja logike (np. PID, Pure Pursuit, DP)
+        out.throttle = 1.0f;       // Gaz (0.0 do 1.0)
+        out.brake = 0.0f;          // Hamulec (0.0 do 1.0)
+        out.steeringAngle = 0.0f;  // Skret (-1.0 do 1.0)
+    }
+
+    std::string getName() const override {
+        return "MyProBot";
+    }
+
+    ColorRGB getColor() const override {
+        return ColorRGB(0, 255, 0); // Zielony bolid
+    }
+};
+
+// Ta linijka automatycznie dodaje bota do wyscigu przy kompilacji!
+REGISTER_BOT(MyProBot)
 ```

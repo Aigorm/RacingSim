@@ -7,21 +7,26 @@ def main():
     WINDOW_WIDTH = 1280.0
     WINDOW_HEIGHT = 720.0
     
+    assets_dir = "../assets"
+    
+    os.makedirs(assets_dir, exist_ok=True)
+    
     # 1. Pobieranie danych od użytkownika
     filename = input("Podaj nazwe pliku SVG (bez rozszerzenia): ").strip()
     if filename.lower().endswith('.svg'):
         filename = filename[:-4]
         
     svg_file = f"{filename}.svg"
-    txt_file = f"{filename}.txt"
+    
+    txt_file = os.path.join(assets_dir, f"{filename}.txt")
 
     if not os.path.exists(svg_file):
         print(f"\n[BLAD] Plik '{svg_file}' nie istnieje w tym folderze!")
         return
 
     try:
-        outer_width = float(input("Podaj szerokosc toru na wewnatrz (w pikselach): "))
-        inner_width = float(input("Podaj szerokosc toru do zewnatrz (w pikselach): "))
+        outer_width = float(input("Podaj szerokosc toru do zewnatrz (w pikselach): "))
+        inner_width = float(input("Podaj szerokosc toru do wewnatrz (w pikselach): "))
     except ValueError:
         print("\n[BLAD] Szerokosc musi byc liczba!")
         return

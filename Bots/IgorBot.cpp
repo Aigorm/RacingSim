@@ -12,8 +12,11 @@ private:
     // ==========================================
 
     // 1. KIEROWNICA I NAWIGACJA
-    const float WAYPOINT_REACHED_DIST = 40.0f; // W jakiej odległości (w pikselach) bot "odhacza" punkt i bierze następny
+    const float WAYPOINT_REACHED_DIST = 20.0f; // W jakiej odległości (w pikselach) bot "odhacza" punkt i bierze następny
     const float STEERING_P_GAIN = 3.0f;        // Jak agresywnie bot kręci kierownicą (im więcej, tym ostrzej reaguje na błąd kątowy)
+    const float STEERING_SMOOTHING = 0.15f;    // Wygładzanie (0.01 - wolno, 1.0 - natychmiast)
+    const float STEERING_DEADZONE = 0.03f;     // Błąd w radianach (~1.7 stopnia), poniżej którego jedziemy prosto
+    float currentSteeringOutput = 0.0f;        // Pamięta fizyczne wychylenie kół w poprzedniej klatce
 
     // 2. PRĘDKOŚĆ I HAMOWANIE (LOOKAHEAD)
     const int   SPEED_LOOKAHEAD_POINTS = 8;    // Ile punktów w przód po optymalnej linii bot patrzy, by ocenić zakręt
@@ -80,8 +83,21 @@ public:
         float steeringError = normalizeAngle(desiredAngle - currentAngle);
 
         // Skręt (P-Controller kierownicy)
-        out.steeringAngle = std::clamp(steeringError * STEERING_P_GAIN, -1.0f, 1.0f);
+        // A. Martwa strefa (Deadzone)
+        // Jeśli błąd jest mniejszy niż deadzone, ignorujemy go (zapobiega to mikrokorektom na prostych)
+        if (std::abs(steeringError) < STEERING_DEADZONE) {
+            steeringError = 0.0f;
+        }
 
+        // B. Wyliczamy, jak mocno bot CHCE skręcić w tej klatce
+        float targetSteering = std::clamp(steeringError * STEERING_P_GAIN, -1.0f, 1.0f);
+
+        // C. Wygładzanie (Linear Interpolation - Lerp)
+        // Zamiast szarpać kierownicą, płynnie przesuwamy obecny stan w stronę celu.
+        currentSteeringOutput = currentSteeringOutput + (targetSteering - currentSteeringOutput) * STEERING_SMOOTHING;
+
+        // D. Wysłanie wygładzonego sygnału do silnika fizycznego
+        out.steeringAngle = currentSteeringOutput;
 
         // 3. LOGIKA PRĘDKOŚCI (LOOKAHEAD BRAKING)
         // Patrzymy kilka punktów w przód, by przewidzieć zakręt
@@ -113,7 +129,7 @@ public:
             out.throttle = 0.0f;
             out.brake = std::clamp(std::abs(speedError) * BRAKE_P_GAIN, 0.0f, 1.0f);
         }
-        std::cout << "Tire Degradation: " << data.myCar.tireDegradation << '\n';
+        // std::cout << "Tire Degradation: " << data.myCar.tireDegradation << '\n';
     }
 
     std::string getName() const override {

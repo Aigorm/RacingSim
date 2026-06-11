@@ -65,7 +65,7 @@ public:
     }
 
     ColorRGB getColor() const override {
-        return ColorRGB(0, 100, 255); 
+        return ColorRGB(0, 255, 0); 
     }
 };
 
