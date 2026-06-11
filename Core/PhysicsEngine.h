@@ -8,16 +8,17 @@ private:
     std::vector<CarState> cars;
     TrackInfo currentTrack;
 
-    float carMass = 800.0f;
-    float maxEngineForce = 10000.0f;
+    float carMass = 700.0f;
+    float maxEngineForce = 15000.0f;
     float maxBrakeForce = 12000.0f;
-    float dragCoefficient = 1.2f;
+    float dragCoefficient = 0.4f;
     float rollingResistance = 30.0f;
     float maxTurnRate = 5.0f;
     float maxSteeringAngle = 0.6f;
     float wheelbase = 2.5f;
     
     const float aeroDownforceMultiplier = 0.05f;
+    const float mechanicalGripMultiplier = 2.8f;
     
     static constexpr float GRAVITY = 9.81f;
     static constexpr float CAR_RADIUS = 1.5f;

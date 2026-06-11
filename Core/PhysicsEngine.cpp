@@ -15,9 +15,9 @@ float PhysicsEngine::getGripCoefficient(TireCompound compound) const {
 
 float PhysicsEngine::getDegradationRate(TireCompound compound) const {
     switch (compound) {
-        case TireCompound::Soft:   return 0.004f;
-        case TireCompound::Medium: return 0.002f;
-        case TireCompound::Hard:   return 0.001f;
+        case TireCompound::Soft:   return 0.001f;
+        case TireCompound::Medium: return 0.0006f;
+        case TireCompound::Hard:   return 0.0003f;
     }
     return 0.002f;
 }
@@ -102,24 +102,6 @@ void PhysicsEngine::initCars(int numberOfCars) {
     }
 }
 
-// void PhysicsEngine::initCars(int numberOfCars) {
-//     cars.clear();
-//     cars.resize(numberOfCars);
-//     for (int i = 0; i < numberOfCars; ++i) {
-//         cars[i].id = i;
-//         // Spawning at Y=10 (center of the track), spaced out along the X axis
-//         cars[i].position = Vector2D(15.0f + (i * 10.0f), 10.0f); 
-//         cars[i].velocity = Vector2D(0.0f, 0.0f);
-//         cars[i].rotationAngle = 0.0f; // Facing directly right (+X)
-        
-//         // Give them distinct colors!
-//         if (i == 0) cars[i].color = {255, 50, 50}; // Red car
-//         else cars[i].color = {50, 150, 255};       // Blue car
-
-//         cars[i].currentTires = TireCompound::Medium;
-//         cars[i].tireDegradation = 0.0f;
-//     }
-// }
 void PhysicsEngine::setCarTires(int carId, TireCompound compound) {
     if (carId >= 0 && carId < static_cast<int>(cars.size())) {
         cars[carId].currentTires = compound;
@@ -150,10 +132,10 @@ void PhysicsEngine::applyForces(float deltaTime, const std::vector<ControlOutput
 
         // Tire grip (decreases with degradation)
         float gripBase = getGripCoefficient(car.currentTires);
-        float degradationPenalty = car.tireDegradation * 0.7f;
+        float degradationPenalty = sqrt(car.tireDegradation);
         float grip = gripBase * std::max(0.3f, 1.0f - degradationPenalty);
         
-        float downforce = (carMass * GRAVITY) + (0.05f * speed * speed);
+        float downforce = (carMass * GRAVITY * mechanicalGripMultiplier) + (aeroDownforceMultiplier * speed * speed);
         float maxLateralForce = grip * downforce;
 
         // Lateral dynamics — eliminate sideways velocity up to grip limit
@@ -289,39 +271,42 @@ void PhysicsEngine::update(float deltaTime, const std::vector<ControlOutput>& in
     if (totalPoints == 0) return; // Zabezpieczenie przed brakiem toru
 
     int numSectors = 20; 
-    float checkpointRadiusSq = 20.0f * 20.0f; 
+
+    // Helper lambdas to calculate exact line segment intersection (CCW mathematically determines if two lines cross)
+    auto ccw = [](const Vector2D& a, const Vector2D& b, const Vector2D& c) {
+        return (c.y - a.y) * (b.x - a.x) > (b.y - a.y) * (c.x - a.x);
+    };
+    auto segmentsIntersect = [&](const Vector2D& a, const Vector2D& b, const Vector2D& c, const Vector2D& d) {
+        return (ccw(a, c, d) != ccw(b, c, d)) && (ccw(a, b, c) != ccw(a, b, d));
+    };
 
     for (auto& car : cars) {
-        // if (car.isFinished) continue;
+        if (car.isFinished) continue;
 
-        // B. DETEKCJA OKRĄŻEŃ (Płaszczyzna prostopadła - Iloczyn Skalarny)
+        int targetPointIndex = (car.nextSectorToClear * totalPoints) / numSectors % totalPoints;
+
+        // Build the checkpoint "Gate" connecting the inner and outer boundaries
+        Vector2D checkpointInner = currentTrack.innerBoundaries[targetPointIndex];
+        Vector2D checkpointOuter = currentTrack.outerBoundaries[targetPointIndex];
         
-        int targetPointIndex = (car.nextSectorToClear * (totalPoints / numSectors)) % totalPoints;
-        Vector2D targetPos = currentTrack.optimalRacingLine[targetPointIndex];
+        // We slightly extend the gate (e.g., by 5 pixels) into the grass to ensure 
+        // cars heavily hugging or grinding the wall don't accidentally slip past the line.
+        Vector2D gateDir = (checkpointOuter - checkpointInner).normalized();
+        Vector2D cpStart = checkpointInner - gateDir * 5.0f;
+        Vector2D cpEnd = checkpointOuter + gateDir * 5.0f;
 
-        // Wyliczamy punkt "następny" na torze, aby ustalić, w którą stronę prowadzi trasa
-        int nextTrackPointIndex = (targetPointIndex + 1) % totalPoints;
-        Vector2D nextPos = currentTrack.optimalRacingLine[nextTrackPointIndex];
+        // Calculate where the car was in the last frame vs where it is now
+        Vector2D oldPos = car.position - (car.velocity * deltaTime);
+        Vector2D newPos = car.position;
 
-        // 1. Wektor kierunku toru w miejscu checkpointu
-        Vector2D trackForward = (nextPos - targetPos).normalized();
-
-        // 2. Wektor od checkpointu do samochodu
-        Vector2D toCar = car.position - targetPos;
-
-        // 3. Sprawdzamy ogólny dystans, żeby nie zaliczyć checkpointu z drugiej strony mapy
-        // Ustawiamy bezpiecznie duży zasięg (np. 150 pikseli), bo precyzję zapewni nam płaszczyzna
-        float distanceSq = toCar.magnitudeSquared();
-        float maxTriggerDistanceSq = 150.0f * 150.0f; 
-
-        if (distanceSq <= maxTriggerDistanceSq) {
+        // Check for physical intersection between the car's path and the checkpoint gate
+        if (segmentsIntersect(oldPos, newPos, cpStart, cpEnd)) {
             
-            // 4. Magia iloczynu skalarnego (Dot Product)
-            // Jeśli wynik jest dodatni (> 0), oznacza to, że auto geometrycznie 
-            // przekroczyło prostopadłą linię checkpointu w kierunku jazdy.
-            float dotProduct = trackForward.dot(toCar);
-
-            if (dotProduct >= 0.0f) {
+            // Security check: Make sure the car crossed it driving FORWARD, not rolling backwards
+            int nextTrackPointIndex = (targetPointIndex + 1) % totalPoints;
+            Vector2D trackForward = (currentTrack.optimalRacingLine[nextTrackPointIndex] - currentTrack.optimalRacingLine[targetPointIndex]).normalized();
+            
+            if (car.velocity.dot(trackForward) > 0.0f) {
                 car.nextSectorToClear++; 
                 
                 if (car.nextSectorToClear > numSectors) {

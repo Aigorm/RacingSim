@@ -11,6 +11,8 @@
 int main() {
     std::cout << "Uruchamianie 2D Auto Racing Simulator..." << std::endl;
 
+    float TimeSpeedupMultiplier = 1.0;
+
     // 1. Inicjalizacja głównych komponentów
     Renderer renderer;
     TrackLoader trackLoader;
@@ -50,8 +52,7 @@ int main() {
         auto currentTime = clock::now();
         std::chrono::duration<float> elapsedTime = currentTime - lastTime;
         lastTime = currentTime;
-        float deltaTime = (elapsedTime.count()*4.0);
-        //przemnożyłęm aby przyspieszyć czas
+        float deltaTime = (elapsedTime.count()*TimeSpeedupMultiplier);
 
         // B. Sprawdzenie, czy użytkownik nie zamknął okna (obsługa zdarzeń)
         if (renderer.pollEvents() == false) {
