@@ -21,6 +21,10 @@ private:
     
     static constexpr float GRAVITY = 9.81f;
     static constexpr float CAR_RADIUS = 1.5f;
+    // Wymiary prostokąta auta (połowy), zgodne z Renderer.cpp (L i W).
+    // Oś X to przód/tył (długość), oś Y to lewo/prawo (szerokość).
+    static constexpr float CAR_HALF_LENGTH = 12.0f;
+    static constexpr float CAR_HALF_WIDTH = 6.0f;
 
     bool carCarCollisionsEnabled = false;
 

@@ -50,9 +50,9 @@ int main() {
         auto currentTime = clock::now();
         std::chrono::duration<float> elapsedTime = currentTime - lastTime;
         lastTime = currentTime;
-        float deltaTime = (elapsedTime.count()*4.0);
+        float deltaTime = (elapsedTime.count()*8.0);
         //przemnożyłęm aby przyspieszyć czas
-
+        
         // B. Sprawdzenie, czy użytkownik nie zamknął okna (obsługa zdarzeń)
         if (renderer.pollEvents() == false) {
             isRunning = false;

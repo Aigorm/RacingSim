@@ -231,14 +231,35 @@ void PhysicsEngine::resolveCollisions() {
             if (d < minDist) { minDist = d; closestPt = cp; }
         }
 
-        if (minDist < CAR_RADIUS && minDist > 1e-6f) {
-            Vector2D pushDir = (car.position - closestPt).normalized();
-            car.position = closestPt + pushDir * CAR_RADIUS;
+        if (minDist <= 1e-6f) return;
 
-            float velIntoWall = car.velocity.dot(pushDir);
-            if (velIntoWall < 0.0f) {
-                car.velocity -= pushDir * (1.5f * velIntoWall);
-                car.velocity *= 0.85f;
+        // Kierunek "od ściany" (normalna ściany skierowana w stronę środka auta).
+        Vector2D normal = (car.position - closestPt).normalized();
+
+        // Osie auta: przód (X lokalne) i bok (Y lokalne) - jak w Renderer.cpp.
+        Vector2D forward(std::cos(car.rotationAngle), std::sin(car.rotationAngle));
+        Vector2D lateral(-std::sin(car.rotationAngle), std::cos(car.rotationAngle));
+
+        // Rzut połowy prostokąta auta na kierunek normalnej ściany.
+        // To zastępuje stały promień - auto jest traktowane jako obrócony prostokąt.
+        float effectiveRadius = CAR_HALF_LENGTH * std::abs(normal.dot(forward))
+                              + CAR_HALF_WIDTH  * std::abs(normal.dot(lateral));
+
+        if (minDist < effectiveRadius) {
+            // Wypchnij auto tak, by jego krawędź ledwo dotykała ściany.
+            car.position = closestPt + normal * effectiveRadius;
+
+            // Rozbij prędkość na składową prostopadłą (w ścianę) i styczną (wzdłuż ściany).
+            float velNormal = car.velocity.dot(normal); // < 0 gdy auto wjeżdża w ścianę
+            if (velNormal < 0.0f) {
+                Vector2D vNormal  = normal * velNormal;       // składowa wbijająca się w ścianę
+                Vector2D vTangent = car.velocity - vNormal;   // składowa wzdłuż ściany
+
+                const float restitution = 0.3f; // odbicie (deflekcja) od ściany
+                const float friction    = 0.60f; // tarcie przy ślizganiu wzdłuż ściany
+
+                // Auto ślizga się wzdłuż ściany i delikatnie się od niej odbija.
+                car.velocity = vTangent * friction - vNormal * restitution;
             }
         }
     };
