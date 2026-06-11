@@ -8,38 +8,30 @@ private:
     std::vector<CarState> cars;
     TrackInfo currentTrack;
 
-    float carMass = 700.0f;
-    float maxEngineForce = 15000.0f;
-    float maxBrakeForce = 12000.0f;
-    float dragCoefficient = 0.4f;
-    float rollingResistance = 30.0f;
-    float maxTurnRate = 5.0f;
-    float maxSteeringAngle = 0.6f;
-    float wheelbase = 2.5f;
-    
-    const float aeroDownforceMultiplier = 0.05f;
-    const float mechanicalGripMultiplier = 2.8f;
-    
-    static constexpr float GRAVITY = 9.81f;
-    static constexpr float CAR_RADIUS = 1.5f;
-    // Wymiary prostokąta auta (połowy), zgodne z Renderer.cpp (L i W).
-    // Oś X to przód/tył (długość), oś Y to lewo/prawo (szerokość).
-    static constexpr float CAR_HALF_LENGTH = 12.0f;
-    static constexpr float CAR_HALF_WIDTH = 6.0f;
-
     bool carCarCollisionsEnabled = false;
+
+    float totalRaceTime = 0.0f;
+    int targetLaps = 3;            
+    std::vector<int> raceRanking;  
 
     float getGripCoefficient(TireCompound compound) const;
     float getDegradationRate(TireCompound compound) const;
-    static Vector2D closestPointOnSegment(const Vector2D& p, const Vector2D& a, const Vector2D& b);
 
     void applyForces(float deltaTime, const std::vector<ControlOutput>& inputs);
+    void integrateCarMotion(CarState& car, const ControlOutput& input, float deltaTime);
+    float computeMaxLateralForce(const CarState& car, float speed) const;
+    Vector2D resolveLateralTireForce(CarState& car, const Vector2D& lateral,
+                                     float maxLateralForce, float deltaTime);
     void updatePositions(float deltaTime);
-    void resolveCollisions();
 
-    float totalRaceTime = 0.0f;
-    int targetLaps = 3; // Globalny int z liczbą okrążeń
-    std::vector<int> raceRanking; // Przechowuje ID aut, które dojechały do mety
+    void resolveCollisions();
+    void resolveBoundaryCollision(CarState& car, const std::vector<Vector2D>& boundary);
+    void resolveCarCarCollisions();
+
+    void updateRaceProgress(float deltaTime);
+    void checkCarCheckpoint(CarState& car, float deltaTime);
+
+    static Vector2D closestPointOnSegment(const Vector2D& p, const Vector2D& a, const Vector2D& b);
 
 public:
     PhysicsEngine() = default;

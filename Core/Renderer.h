@@ -5,43 +5,31 @@
 
 struct SDL_Window;
 struct SDL_Renderer;
-struct SDL_Texture;
+struct SDL_Color;
+struct SDL_FPoint;
 
 class Renderer {
 private:
-    // Główne uchwyty (wskaźniki) do okna i mechanizmu rysującego SDL2
     SDL_Window* window;
     SDL_Renderer* sdlRenderer;
 
-    // TODO: Zadeklarować zmienne na tekstury
-    // SDL_Texture* carTexture;
-    // SDL_Texture* trackBackgroundTexture;
-
-    // PRYWATNE FUNKCJE POMOCNICZE
-    
-    // TODO: Funkcja rysująca kształt toru (np. wielokąty na podstawie TrackInfo)
     void drawTrack(const TrackInfo& track);
-    
-    // TODO: Funkcja rysująca pojedyncze auto z uwzględnieniem jego rotacji i pozycji
+    void drawAsphalt(const TrackInfo& track, int n);
+    void drawThickBoundary(const std::vector<Vector2D>& boundary, int n);
+    void drawCenterLine(const std::vector<Vector2D>& line, int n);
+    void drawStartFinishLine(const TrackInfo& track);
+
     void drawCar(const CarState& car);
     
-    // TODO: (Opcjonalnie) Funkcja rysująca interfejs z czasami okrążeń i statystykami
-    void drawUI();
+    SDL_FPoint transformLocalToWorld(float localX, float localY, float cx, float cy, float cosA, float sinA) const;
+    void drawQuad(float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, SDL_Color color, float cx, float cy, float cosA, float sinA);
+    void drawTriangle(float x1, float y1, float x2, float y2, float x3, float y3, SDL_Color color, float cx, float cy, float cosA, float sinA);
 
 public:
     Renderer();
-    
-    // Destruktor : SDL_DestroyRenderer i SDL_Quit
     ~Renderer();
 
-    // Tworzy okno, inicjalizuje SDL2 i ustawia VSync
     bool init(const std::string& title, int width, int height, bool vsync);
-
-    // Sprawdza kolejkę zdarzeń systemu operacyjnego (np. czy wciśnięto X)
-    // Zwraca false, jeśli użytkownik chce zamknąć program.
     bool pollEvents();
-
-    // Główna funkcja wywoływana co klatkę z main.cpp
-    // Czyści ekran, wywołuje prywatne funkcje drawTrack i drawCar, a na końcu robi SDL_RenderPresent
     void drawFrame(const std::vector<CarState>& cars, const TrackInfo& track);
 };

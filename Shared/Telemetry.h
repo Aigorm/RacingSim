@@ -3,7 +3,6 @@
 #include <cstdint>
 #include "Vector2D.h"
 
-// 1. Definicja kolorów
 struct ColorRGB {
     uint8_t r;
     uint8_t g;
@@ -13,17 +12,14 @@ struct ColorRGB {
         : r(red), g(green), b(blue) {}
 };
 
-// 2. Wejście z bota do silnika (Tylko jedna definicja!)
 struct ControlOutput {
-    float throttle = 0.0f; // od -1.0 (wsteczny) do 1.0 (gaz)
-    float brake = 0.0f;    // od 0.0 do 1.0 (hamulec)
+    float throttle = 0.0f; 
+    float brake = 0.0f;    
     float steeringAngle = 0.0f; 
 };
 
-// 3. Enumy
 enum class TireCompound { Soft, Medium, Hard };
 
-// 4. Stan pojedynczego auta
 struct CarState {
     int id;
     Vector2D position;
@@ -35,21 +31,18 @@ struct CarState {
     TireCompound currentTires;
     float tireDegradation;
 
-    // Zmienne wyścigowe
     int lapsCompleted = 0;
-    int nextSectorToClear = 1; // Auto zaczyna na mecie, więc szuka 1. sektora
+    int nextSectorToClear = 1; 
     bool isFinished = false;
     float finishTime = 0.0f;
 };
 
-// 5. Informacje o torze
 struct TrackInfo {
     std::vector<Vector2D> innerBoundaries;
     std::vector<Vector2D> outerBoundaries;
     std::vector<Vector2D> optimalRacingLine; 
 };
 
-// 6. Pełna telemetria dla botów
 struct Telemetry {
     CarState myCar;
     std::vector<CarState> opponents;
