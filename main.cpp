@@ -11,7 +11,7 @@
 int main() {
     std::cout << "Uruchamianie 2D Auto Racing Simulator..." << std::endl;
 
-    float TimeSpeedupMultiplier = 1.0;
+    float TimeSpeedupMultiplier = 4.0;
 
     // 1. Inicjalizacja głównych komponentów
     Renderer renderer;
