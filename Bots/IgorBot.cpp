@@ -7,9 +7,6 @@
 
 class IgorBot : public IBot {
 private:
-    // ==========================================
-    // --- PARAMETRY DO FINE-TUNINGU BOTA ---
-    // ==========================================
 
     // 1. KIEROWNICA I NAWIGACJA
     const float WAYPOINT_REACHED_DIST = 20.0f; // W jakiej odległości (w pikselach) bot "odhacza" punkt i bierze następny
@@ -28,14 +25,10 @@ private:
     const float THROTTLE_P_GAIN = 0.05f;       // Jak szybko wciska gaz, gdy brakuje mu prędkości
     const float BRAKE_P_GAIN = 0.1f;           // Jak mocno depcze hamulec, gdy ma nadmiar prędkości
 
-    // ==========================================
-    // --- STAN WEWNĘTRZNY BOTA ---
-    // ==========================================
     bool lineCalculated = false;
     std::vector<Vector2D> optimalLine;
     int currentWaypointIndex = 0;
 
-    // Funkcja pomocnicza: Sprowadza kąt do przedziału [-PI, PI]
     float normalizeAngle(float angle) {
         const float PI = 3.14159265f;
         while (angle > PI)  angle -= 2.0f * PI;
@@ -111,7 +104,7 @@ public:
         // Oceniamy ostrość zakrętu (0.0 to prosta, 1.0 to ostry zakręt)
         float cornerSharpness = std::min(futureAngleDiff / HARD_CORNER_ANGLE, 1.0f);
 
-        // Interpolacja pożądanej prędkości (lerp)
+        // Interpolacja pożądanej prędkości
         // Jeśli cornerSharpness == 0, targetSpeed = MAX_STRAIGHT_SPEED
         // Jeśli cornerSharpness == 1, targetSpeed = MIN_CORNER_SPEED
         float targetSpeed = MAX_STRAIGHT_SPEED - (cornerSharpness * (MAX_STRAIGHT_SPEED - MIN_CORNER_SPEED));
@@ -121,15 +114,12 @@ public:
         float speedError = targetSpeed - currentSpeed;
 
         if (speedError > 0.0f) {
-            // Jedziemy za wolno - dodajemy gazu
             out.throttle = std::clamp(speedError * THROTTLE_P_GAIN, 0.0f, 1.0f);
             out.brake = 0.0f;
         } else {
-            // Jedziemy za szybko względem zakrętu - hamujemy
             out.throttle = 0.0f;
             out.brake = std::clamp(std::abs(speedError) * BRAKE_P_GAIN, 0.0f, 1.0f);
         }
-        // std::cout << "Tire Degradation: " << data.myCar.tireDegradation << '\n';
     }
 
     std::string getName() const override {
@@ -143,9 +133,6 @@ public:
 private:
     std::vector<Vector2D> calculateOptimalRacingLine(const TrackInfo& track) 
     {
-        // ==========================================
-        // Parametry generatora linii z algorytmu DP
-        // ==========================================
         const float CAR_WIDTH = 12.0f;       
         const int NUM_NODES = 11;            
         const float TURN_PENALTY = 200.0f;   

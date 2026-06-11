@@ -302,7 +302,7 @@ void PhysicsEngine::update(float deltaTime, const std::vector<ControlOutput>& in
     };
 
     for (auto& car : cars) {
-        if (car.isFinished) continue;
+        // if (car.isFinished) continue;
 
         int targetPointIndex = (car.nextSectorToClear * totalPoints) / numSectors % totalPoints;
 
