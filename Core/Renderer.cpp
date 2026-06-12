@@ -2,14 +2,10 @@
 #include <SDL2/SDL.h>
 #include <iostream>
 
-// --- KONSTRUKTOR I DESTRUKTOR ---
-
 Renderer::Renderer() : window(nullptr), sdlRenderer(nullptr) {
-    // Inicjalizacja wskaźników
 }
 
 Renderer::~Renderer() {
-    // Zwalnianie pamięci w odwrotnej kolejności do jej alokacji
     if (sdlRenderer) {
         SDL_DestroyRenderer(sdlRenderer);
     }
@@ -19,10 +15,7 @@ Renderer::~Renderer() {
     SDL_Quit();
 }
 
-// --- INICJALIZACJA SDL2 ---
-
 bool Renderer::init(const std::string& title, int width, int height, bool vsync) {
-    // Inicjalizacja podsystemu wideo SDL2
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "Blad SDL_Init: " << SDL_GetError() << std::endl;
         return false;
@@ -41,7 +34,6 @@ bool Renderer::init(const std::string& title, int width, int height, bool vsync)
         return false;
     }
 
-    // Flagi dla renderera - sprzętowa akceleracja i opcjonalny VSync
     Uint32 renderFlags = SDL_RENDERER_ACCELERATED;
     if (vsync) {
         renderFlags |= SDL_RENDERER_PRESENTVSYNC;
@@ -57,8 +49,6 @@ bool Renderer::init(const std::string& title, int width, int height, bool vsync)
     return true;
 }
 
-// --- OBSŁUGA ZDARZEŃ ---
-
 bool Renderer::pollEvents() {
     SDL_Event e;
     // Ściąganie wszystkich zdarzeń z kolejki systemu operacyjnego
@@ -70,8 +60,6 @@ bool Renderer::pollEvents() {
     }
     return true;
 }
-
-// --- GŁÓWNA PĘTLA RYSOWANIA ---
 
 void Renderer::drawFrame(const std::vector<CarState>& cars, const TrackInfo& track) {
     // 1. Tło na ciemnozielono
@@ -86,8 +74,6 @@ void Renderer::drawFrame(const std::vector<CarState>& cars, const TrackInfo& tra
     // 3. Wyrzucenie klatki na monitor (tu program zablokuje się dzięki VSync)
     SDL_RenderPresent(sdlRenderer);
 }
-
-// --- LOGIKA RYSOWANIA TORU ---
 
 void Renderer::drawTrack(const TrackInfo& track) {
     if (track.optimalRacingLine.empty() || track.innerBoundaries.empty()) return;
@@ -136,7 +122,7 @@ void Renderer::drawTrack(const TrackInfo& track) {
         }
     }
 
-    // C: Zewnętrzna banda wewnętrzna (Czarna, pogrubiona) - Dodano, by tor miał dwie bandy!
+    // C: Zewnętrzna banda wewnętrzna (Czarna, pogrubiona)
     for (int i = 0; i < n; ++i) {
         int next_i = (i + 1) % n;
         for(int offsetX = -1; offsetX <= 1; ++offsetX) {
@@ -157,9 +143,6 @@ void Renderer::drawTrack(const TrackInfo& track) {
             track.optimalRacingLine[next_i].x, track.optimalRacingLine[next_i].y);
     }
 
-    // ==========================================
-    // ETAP E: Linia startu/mety (Pomarańczowy prostokąt)
-    // ==========================================
     if (n > 1) {
         // 1. Obliczamy wektor kierunku (styczny) na samym starcie toru
         Vector2D p0 = track.optimalRacingLine[0];
@@ -180,7 +163,6 @@ void Renderer::drawTrack(const TrackInfo& track) {
         SDL_Color orange = {255, 165, 0, 255}; // Pomarańczowy RGB
 
         // 3. Budujemy 4 narożniki prostokąta
-        // Bierzemy punkty z krawędzi i przesuwamy je lekko wzdłuż toru
         std::vector<SDL_Vertex> startLineVertices;
         
         SDL_Vertex v1 = {{track.innerBoundaries[0].x, track.innerBoundaries[0].y}, orange, {0,0}};
@@ -240,7 +222,6 @@ void Renderer::drawCar(const CarState& car) {
         SDL_RenderGeometry(sdlRenderer, nullptr, verts, 3, indices, 3);
     };
 
-    // --- KOLORY ---
     SDL_Color bodyColor = {car.color.r, car.color.g, car.color.b, 255};
     SDL_Color black = {0, 0, 0, 255};
     // Delikatnie przyciemniony kolor dla trójkąta z przodu, żeby odcinał się od maski
@@ -251,7 +232,6 @@ void Renderer::drawCar(const CarState& car) {
         255
     };
 
-    // --- GEOMETRIA AUTA (Wymiary lokalne) ---
     // Oś X to przód/tył, Oś Y to lewo/prawo. Środek auta to (0,0).
     const float L = 12.0f; // Połowa długości (X)
     const float W = 6.0f;  // Połowa szerokości (Y)
