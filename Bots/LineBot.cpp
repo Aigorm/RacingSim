@@ -1,72 +1,64 @@
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 #include "../API/IBot.h"
 #include "../API/BotRegistry.h"
 
+namespace {
+    constexpr float WAYPOINT_REACH_DISTANCE = 40.0f;
+    constexpr float CRUISE_THROTTLE = 0.7f;
+    constexpr float STEERING_P_GAIN = 2.0f;
+    constexpr float PI = 3.14159265f;
+}
+
 class LineFollowerBot : public IBot {
 private:
-    // Przechowujemy indeks punktu, do którego aktualnie zmierzamy
-    int currentTargetIndex = 0; 
-    
-    // Ustawiamy bezpieczną prędkość początkową (nie używamy pełnego gazu, bo wylecimy z zakrętu)
-    const float CRUISE_THROTTLE = 0.7f;
+    int currentTargetIndex = 0;
 
-public:
-    void on_tick(const Telemetry& data, ControlOutput& out) override {
-        const auto& line = data.track.optimalRacingLine;
-        
-        // Zabezpieczenie przed brakiem toru
-        if (line.empty()) return;
-
-        Vector2D carPos = data.myCar.position;
+    void updateWaypointProgress(const Vector2D& carPos, const std::vector<Vector2D>& line) {
         Vector2D target = line[currentTargetIndex];
         
-        // 1. Obliczamy wektor do celu i dystans
-        float dx = target.x - carPos.x;
-        float dy = target.y - carPos.y;
-        float dist = std::sqrt(dx * dx + dy * dy);
+        float distSq = (target - carPos).magnitudeSquared();
+        float reachDistSq = WAYPOINT_REACH_DISTANCE * WAYPOINT_REACH_DISTANCE;
         
-        // 2. Jeśli jesteśmy blisko (np. mniej niż 40 pikseli), bierzemy następny punkt
-        if (dist < 40.0f) {
+        if (distSq < reachDistSq) {
             currentTargetIndex = (currentTargetIndex + 1) % line.size();
-            
-            // Aktualizujemy wektory dla nowego celu
-            target = line[currentTargetIndex];
-            dx = target.x - carPos.x;
-            dy = target.y - carPos.y;
         }
+    }
+
+    float normalizeAngle(float angle) const {
+        while (angle > PI)  angle -= 2.0f * PI;
+        while (angle < -PI) angle += 2.0f * PI;
+        return angle;
+    }
+
+    float calculateSteering(const CarState& car, const Vector2D& target) const {
+        Vector2D toTarget = target - car.position;
+        float desiredAngle = std::atan2(toTarget.y, toTarget.x);
+        float angleDiff = normalizeAngle(desiredAngle - car.rotationAngle);
         
-        // 3. Obliczamy pożądany kąt za pomocą atan2 (kąt między osią X a wektorem do celu)
-        float desiredAngle = std::atan2(dy, dx);
-        float currentAngle = data.myCar.rotationAngle;
-        
-        // 4. Różnica kątów
-        float angleDiff = desiredAngle - currentAngle;
-        
-        const float PI = 3.14159265f;
-        while (angleDiff > PI)  angleDiff -= 2.0f * PI;
-        while (angleDiff < -PI) angleDiff += 2.0f * PI;
-        
-        // 5. Sterowanie proporcjonalne (im większy błąd, tym mocniej kręcimy kierownicą)
-        // Mnożnik ustala czułość reakcji
-        out.steeringAngle = angleDiff * 2.0f; 
-        
-        // Ucinamy wartości, żeby nie przekroczyły mechanicznych możliwości auta [-1.0, 1.0]
-        if (out.steeringAngle > 1.0f) out.steeringAngle = 1.0f;
-        if (out.steeringAngle < -1.0f) out.steeringAngle = -1.0f;
-        
-        // 6. Przepustnica i hamulec
+        return std::clamp(angleDiff * STEERING_P_GAIN, -1.0f, 1.0f);
+    }
+
+    void applySpeedControl(ControlOutput& out) const {
         out.throttle = CRUISE_THROTTLE; 
         out.brake = 0.0f;
     }
 
-    std::string getName() const override {
-        return "Line Follower";
-    }
+public:
+    std::string getName() const override { return "Line Follower"; }
+    ColorRGB getColor() const override { return ColorRGB(0, 255, 0); } // Solid Green
 
-    ColorRGB getColor() const override {
-        return ColorRGB(0, 255, 0); 
+    void on_tick(const Telemetry& data, ControlOutput& out) override {
+        const auto& line = data.track.optimalRacingLine;
+        if (line.empty()) return;
+
+        updateWaypointProgress(data.myCar.position, line);
+
+        Vector2D target = line[currentTargetIndex];
+        out.steeringAngle = calculateSteering(data.myCar, target);
+        applySpeedControl(out);
     }
 };
 
-REGISTER_BOT(LineFollowerBot)
+REGISTER_BOT(LineFollowerBot);

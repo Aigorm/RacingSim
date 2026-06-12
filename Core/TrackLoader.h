@@ -3,13 +3,14 @@
 #include "../Shared/Telemetry.h"
 
 class TrackLoader {
+private:    
+    bool parseFile(const std::string& filename, TrackInfo& track, float& outWidth, float& inWidth) const;
+    
+    void generateBoundaries(TrackInfo& track, float outWidth, float inWidth) const;
+
 public:
     TrackLoader() = default;
     ~TrackLoader() = default;
 
-    // Funkcja wczytująca punkty z naszego generatora tekstowego
-    TrackInfo loadFromTxt(const std::string& filename);
-
-    // TODO: Zaimplementować na koniec projektu, aby wczytywać płynne krzywe
-    // TrackInfo loadFromSvg(const std::string& filename);
+    TrackInfo loadFromTxt(const std::string& filename) const;
 };
